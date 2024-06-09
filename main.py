@@ -4,94 +4,79 @@ from direct.gui.DirectGui import DirectButton
 from direct.task import Task
 import math
 
-from maps.terrainprovider import TerrainProvider
-
-
 class MyApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
-        self.camera_height = None
-        self.camera_radius = None
-        self.camera_angle = None
-        terrainProvider = TerrainProvider( self.loader )
-        terrainInfo = terrainProvider.create_terrain( "heightmap" )
-        self.terrain = terrainInfo.terrain
-        self.terrain.getRoot().reparentTo( self.render )
-        self.terrain.setFocalPoint( self.camera )
+
+        # Create the terrain
+        self.create_terrain()
+
+        # Disable default mouse-based camera control
         self.disableMouse()
-        self.create_rotate_left_button()
-        self.create_rotate_right_button()
-        self.create_above_button()
-        self.create_distance_view_button()
+
+        # Add a button to rotate the camera
+        self.create_rotate_button()
+
         # Initialize camera rotation variables
-        self.setCamera()
-        self.terrain_size = terrainInfo.terrainSize
-        self.terrain_center = terrainInfo.terrainCenter
+        self.camera_angle = 0  # Initial camera angle
+        self.camera_radius = 900  # Distance from the center of the terrain
+        self.camera_height = 400  # Height of the camera
 
         # Position the camera directly above the center of the terrain
         self.update_camera_position()
+
         # Start a task to update the camera position
         self.taskMgr.add(self.update_camera_task, "UpdateCameraTask")
 
-    def setCamera( self ):
-        self.camera_angle = 0  # Initial camera angle
-        self.camera_radius = 1200  # Distance from the center of the terrain
-        self.camera_height = 400  # Height of the camera
+    def create_terrain(self):
+        # Create a GeoMipTerrain object
+        self.terrain = GeoMipTerrain("terrain")
 
-    def create_rotate_left_button(self):
+        # Load the heightmap
+        heightmap = PNMImage(Filename("maps/heightmap.png"))
+        self.terrain.setHeightfield(heightmap)
+
+        # Set terrain properties
+        self.terrain.setBlockSize(32)
+        self.terrain.setNear(40)
+        self.terrain.setFar(200)
+        self.terrain.setFocalPoint(self.camera)
+
+        # Generate the terrain
+        self.terrain.generate()
+
+        # Apply a texture to the terrain
+        texture = self.loader.loadTexture("maps/terrain_texture.png")
+        self.terrain.getRoot().setTexture(texture)
+
+        # Reparent the terrain to the render node
+        self.terrain.getRoot().reparentTo(self.render)
+
+        # Enable the terrain's LOD (Level of Detail) system
+        self.terrain.getRoot().setSz(100)
+
+        # Calculate the center of the terrain
+        self.terrain_size = heightmap.getXSize()  # Assuming square heightmap
+        self.terrain_center = Point3(self.terrain_size / 2, self.terrain_size / 2, 0)
+
+    def create_rotate_button(self):
+        # Create a button to rotate the camera
         rotate_button = DirectButton(
-            text="Rotate Left",
+            text="Rotate Camera",
             command=self.rotate_camera,
             pos=(0, 0, -0.9),
             scale=0.1
         )
 
-    def create_rotate_right_button(self):
-        rotate_button = DirectButton(
-            text="Rotate Right",
-            command=self.rotate_camera,
-            pos=(0, 0, 0.9),
-            scale=0.1,
-            extraArgs=[ -1 ]
-        )
-
-    def create_above_button( self ):
-        rotate_button = DirectButton(
-            text = "Hover Above",
-            command = self.hover_above,
-            pos = (0.9, 0.9, 0),
-            scale = 0.1
-        )
-
-    def create_distance_view_button( self ):
-        rotate_button = DirectButton(
-            text = "Distance View",
-            command = self.hover_distance,
-            pos = (-0.9, -0.9, 0),
-            scale = 0.1
-        )
-
-    def rotate_camera(self, direction = 1 ):
+    def rotate_camera(self):
         # Rotate the camera by a certain angle
-        self.camera_angle += math.radians( direction * 10)  # Rotate by 10 degrees per click
-        self.update_camera_position()
-
-    def hover_above(self ):
-        self.camera_angle = 0  # Initial camera angle
-        self.camera_radius = 0  # Distance from the center of the terrain
-        self.camera_height = 1200  # Height of the camera
-        self.update_camera_position()
-
-    def hover_distance(self ):
-        self.camera_angle = 0  # Initial camera angle
-        self.camera_radius = 1200  # Distance from the center of the terrain
-        self.camera_height = 400  # Height of the camera
+        self.camera_angle += math.radians(10)  # Rotate by 10 degrees per click
         self.update_camera_position()
 
     def update_camera_position(self):
         # Calculate new camera position on a circular path around the terrain center
-        x = self.terrain_center.getX() + ( self.camera_radius or 1 ) * math.sin(self.camera_angle)
-        y = self.terrain_center.getY() + ( self.camera_radius or 1 )  * math.cos(self.camera_angle)
+        x = self.terrain_center.getX() + self.camera_radius * math.sin(self.camera_angle)
+        y = self.terrain_center.getY() + self.camera_radius * math.cos(self.camera_angle)
         z = self.camera_height
 
         # Set camera position and orientation
