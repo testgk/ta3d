@@ -1,5 +1,9 @@
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import GeoMipTerrain, Texture, Filename, PNMImage, Point3
+from panda3d.core import BitMask32, CollisionHandlerQueue, CollisionNode, CollisionPolygon, CollisionRay, \
+    CollisionTraverser, \
+    GeoMipTerrain, GeomVertexReader, Texture, \
+    Filename, \
+    PNMImage, Point3
 from direct.gui.DirectGui import DirectButton
 from direct.task import Task
 import math
@@ -18,7 +22,7 @@ class MyApp(ShowBase):
         self.terrain = terrainInfo.terrain
         self.terrain.getRoot().reparentTo( self.render )
         self.terrain.setFocalPoint( self.camera )
-        self.disableMouse()
+        #self.disableMouse()
         self.create_rotate_left_button()
         self.create_rotate_right_button()
         self.create_above_button()
@@ -27,6 +31,21 @@ class MyApp(ShowBase):
         self.setCamera()
         self.terrain_size = terrainInfo.terrainSize
         self.terrain_center = terrainInfo.terrainCenter
+
+        # Set up collision detection for mouse clicks
+        self.picker = CollisionTraverser()
+        self.pickerQueue = CollisionHandlerQueue()
+
+        self.pickerNode = CollisionNode('mouseRay')
+        self.pickerNP = self.camera.attachNewNode(self.pickerNode)
+        self.pickerNode.setFromCollideMask(BitMask32.bit(1))
+        self.pickerRay = CollisionRay()
+        self.pickerNode.addSolid(self.pickerRay)
+        self.picker.addCollider(self.pickerNP, self.pickerQueue)
+        self.accept( 'mouse1', self.on_map_click )
+        self.create_terrain_collision()
+        # Position the camera directly above the center of the terrain
+        self.update_camera_position()
 
         # Position the camera directly above the center of the terrain
         self.update_camera_position()
@@ -99,9 +118,62 @@ class MyApp(ShowBase):
         self.camera.lookAt(self.terrain_center)
 
     def update_camera_task(self, task):
-        # Update the camera position continuously if needed (e.g., for animation)
         self.update_camera_position()
         return Task.cont  # Continue the task
+
+    def create_terrain_collision( self ):
+        root = self.terrain.getRoot()
+        geomNode = root.find( "**/+GeomNode" ).node()
+        geom = geomNode.getGeom( 0 )
+        vertexData = geom.getVertexData()
+
+        format = geom.getVertexData().getFormat()
+        vertexReader = GeomVertexReader( vertexData, 'vertex' )
+
+        tris = geom.getPrimitive( 0 )
+        tris = tris.decompose()
+
+        vertexReader = GeomVertexReader( vertexData, 'vertex' )
+        collisionNode = CollisionNode( 'terrain' )
+        collisionNode.setIntoCollideMask( BitMask32.bit( 1 ) )
+
+        for i in range( tris.getNumPrimitives() ):
+            s = tris.getPrimitiveStart( i )
+            e = tris.getPrimitiveEnd( i )
+            assert e - s == 3
+
+            vertices = [ ]
+            for j in range( s, e ):
+                vi = tris.getVertex( j )
+                vertexReader.setRow( vi )
+                v = vertexReader.getData3()
+                vertices.append( v )
+
+            poly = CollisionPolygon( vertices[ 0 ], vertices[ 1 ], vertices[ 2 ] )
+            collisionNode.addSolid( poly )
+
+        collisionNodePath = root.attachNewNode( collisionNode )
+    def on_map_click(self):
+        print('1111')
+        if self.mouseWatcherNode.hasMouse():
+            print( '222' )
+            mpos = self.mouseWatcherNode.getMouse()
+
+            # Set the position of the ray based on the mouse position
+            self.pickerRay.setFromLens(self.camNode, mpos.getX(), mpos.getY())
+
+            # Perform the collision detection
+            self.picker.traverse(self.render)
+
+            if self.pickerQueue.getNumEntries() > 0:
+                # Sort entries so the closest is first
+                self.pickerQueue.sortEntries()
+                entry = self.pickerQueue.getEntry(0)
+                point = entry.getSurfacePoint(self.render)
+
+                # Update the terrain center to the clicked point
+                self.terrain_center = point
+                self.update_camera_position()
 
 app = MyApp()
 app.run()
