@@ -4,60 +4,30 @@ from direct.gui.DirectGui import DirectButton
 from direct.task import Task
 import math
 
+from maps.terrainprovider import TerrainProvider
+
+
 class MyApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
-
-        # Create the terrain
-        self.create_terrain()
-
-        # Disable default mouse-based camera control
+        terrainProvider = TerrainProvider( self.loader )
+        terrainInfo = terrainProvider.create_terrain( "heightmap" )
+        self.terrain = terrainInfo.terrain
+        self.terrain.getRoot().reparentTo( self.render )
+        self.terrain.setFocalPoint( self.camera )
         self.disableMouse()
-
-        # Add a button to rotate the camera
         self.create_rotate_button()
-
         # Initialize camera rotation variables
         self.camera_angle = 0  # Initial camera angle
         self.camera_radius = 900  # Distance from the center of the terrain
         self.camera_height = 400  # Height of the camera
+        self.terrain_size = terrainInfo.terrainSize
+        self.terrain_center = terrainInfo.terrainCenter
 
         # Position the camera directly above the center of the terrain
         self.update_camera_position()
-
         # Start a task to update the camera position
         self.taskMgr.add(self.update_camera_task, "UpdateCameraTask")
-
-    def create_terrain(self):
-        # Create a GeoMipTerrain object
-        self.terrain = GeoMipTerrain("terrain")
-
-        # Load the heightmap
-        heightmap = PNMImage(Filename("maps/heightmap.png"))
-        self.terrain.setHeightfield(heightmap)
-
-        # Set terrain properties
-        self.terrain.setBlockSize(32)
-        self.terrain.setNear(40)
-        self.terrain.setFar(200)
-        self.terrain.setFocalPoint(self.camera)
-
-        # Generate the terrain
-        self.terrain.generate()
-
-        # Apply a texture to the terrain
-        texture = self.loader.loadTexture("maps/terrain_texture.png")
-        self.terrain.getRoot().setTexture(texture)
-
-        # Reparent the terrain to the render node
-        self.terrain.getRoot().reparentTo(self.render)
-
-        # Enable the terrain's LOD (Level of Detail) system
-        self.terrain.getRoot().setSz(100)
-
-        # Calculate the center of the terrain
-        self.terrain_size = heightmap.getXSize()  # Assuming square heightmap
-        self.terrain_center = Point3(self.terrain_size / 2, self.terrain_size / 2, 0)
 
     def create_rotate_button(self):
         # Create a button to rotate the camera
