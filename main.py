@@ -1,12 +1,10 @@
-from direct.showbase.ShowBase import ShowBase
-from panda3d.core import BitMask32, CollisionHandlerQueue, CollisionNode, CollisionPolygon, CollisionRay, \
-    CollisionTraverser, \
-    GeoMipTerrain, GeomVertexReader, Texture, \
-    Filename, \
-    PNMImage, Point3
-from direct.gui.DirectGui import DirectButton
-from direct.task import Task
 import math
+
+from direct.gui.DirectGui import DirectButton
+from direct.showbase.ShowBase import ShowBase
+from direct.task import Task
+from panda3d.core import BitMask32, CollisionHandlerQueue, CollisionNode, CollisionPolygon, CollisionRay, \
+    CollisionTraverser, GeomNode, GeomVertexReader
 
 from maps.terrainprovider import TerrainProvider
 
@@ -14,6 +12,11 @@ from maps.terrainprovider import TerrainProvider
 class MyApp(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
+        self.pickerQueue = None
+        self.picker = None
+        self.pickerRay = None
+        self.pickerNP = None
+        self.pickerNode = None
         self.camera_height = None
         self.camera_radius = None
         self.camera_angle = None
@@ -32,26 +35,26 @@ class MyApp(ShowBase):
         self.terrain_size = terrainInfo.terrainSize
         self.terrain_center = terrainInfo.terrainCenter
 
+        self.createPicker()
+
+        self.accept( 'mouse1', self.on_map_click )
+        # Create a collision mesh for the terrain
+        self.create_terrain_collision()
+        # Position the camera directly above the center of the terrain
+        self.update_camera_position()
+        # Start a task to update the camera position
+        self.taskMgr.add( self.update_camera_task, "UpdateCameraTask" )
+
+    def createPicker( self ):
         # Set up collision detection for mouse clicks
         self.picker = CollisionTraverser()
         self.pickerQueue = CollisionHandlerQueue()
-
         self.pickerNode = CollisionNode( 'mouseRay' )
         self.pickerNP = self.camera.attachNewNode( self.pickerNode )
         self.pickerNode.setFromCollideMask( BitMask32.bit( 1 ) )
         self.pickerRay = CollisionRay()
         self.pickerNode.addSolid( self.pickerRay )
         self.picker.addCollider( self.pickerNP, self.pickerQueue )
-
-        self.accept( 'mouse1', self.on_map_click )
-
-        # Create a collision mesh for the terrain
-        self.create_terrain_collision()
-
-        # Position the camera directly above the center of the terrain
-        self.update_camera_position()
-        # Start a task to update the camera position
-        self.taskMgr.add( self.update_camera_task, "UpdateCameraTask" )
 
     def setCamera( self ):
         self.camera_angle = 0  # Initial camera angle
@@ -63,6 +66,7 @@ class MyApp(ShowBase):
             text="Rotate Left",
             command=self.rotate_camera,
             pos=(0, 0, -0.9),
+            text_scale = 0.5,
             scale=0.1
         )
 
@@ -72,6 +76,7 @@ class MyApp(ShowBase):
             command=self.rotate_camera,
             pos=(0, 0, 0.9),
             scale=0.1,
+            text_scale = 0.5,
             extraArgs=[ -1 ]
         )
 
@@ -80,7 +85,8 @@ class MyApp(ShowBase):
             text = "Hover Above",
             command = self.hover_above,
             pos = (0.9, 0.9, 0),
-            scale = 0.1
+            scale = 0.1,
+            text_scale = 0.5,  # Adjust the text size
         )
 
     def create_distance_view_button( self ):
@@ -88,8 +94,10 @@ class MyApp(ShowBase):
             text = "Distance View",
             command = self.hover_distance,
             pos = (-0.9, -0.9, 0),
+            text_scale = 0.5,
             scale = 0.1
         )
+
 
     def rotate_camera(self, direction = 1 ):
         # Rotate the camera by a certain angle
@@ -122,40 +130,46 @@ class MyApp(ShowBase):
         self.update_camera_position()
         return Task.cont  # Continue the task
 
-    def create_terrain_collision( self ):
+
+    def create_terrain_collision(self):
+        # Assuming self.terrain is your terrain NodePath
         root = self.terrain.getRoot()
-        geomNode = root.find( "**/+GeomNode" ).node()
-        geom = geomNode.getGeom( 0 )
-        vertexData = geom.getVertexData()
 
-        vertexReader = GeomVertexReader( vertexData, 'vertex' )
+        # Iterate over each GeomNode
+        for child in root.getChildren():
+            if isinstance(child.node(), GeomNode):
+                geom_node = child.node()
+                geom = geom_node.getGeom(0)  # Assuming each GeomNode has one Geom
+                vertex_data = geom.getVertexData()
 
-        tris = geom.getPrimitive( 0 )
-        tris = tris.decompose()
+                tris = geom.getPrimitive(0)  # Assuming the first primitive is triangles
+                tris = tris.decompose()
 
-        vertexReader = GeomVertexReader( vertexData, 'vertex' )
-        collisionNode = CollisionNode( 'terrain' )
-        collisionNode.setIntoCollideMask( BitMask32.bit( 1 ) )
+                collision_node = CollisionNode(f'terrain_{child.getName()}')
+                collision_node.setIntoCollideMask(BitMask32.bit(1))
 
-        for i in range( tris.getNumPrimitives() ):
-            s = tris.getPrimitiveStart( i )
-            e = tris.getPrimitiveEnd( i )
-            assert e - s == 3
+                vertex_reader = GeomVertexReader(vertex_data, 'vertex')
 
-            vertices = [ ]
-            for j in range( s, e ):
-                vi = tris.getVertex( j )
-                vertexReader.setRow( vi )
-                v = vertexReader.getData3()
-                vertices.append( v )
+                for i in range(tris.getNumPrimitives()):
+                    s = tris.getPrimitiveStart(i)
+                    e = tris.getPrimitiveEnd(i)
+                    assert e - s == 3
 
-            poly = CollisionPolygon( vertices[ 0 ], vertices[ 1 ], vertices[ 2 ] )
-            collisionNode.addSolid( poly )
+                    vertices = []
+                    for j in range(s, e):
+                        vi = tris.getVertex(j)
+                        vertex_reader.setRow(vi)
+                        v = vertex_reader.getData3()
+                        vertices.append(v)
 
-        collisionNodePath = root.attachNewNode( collisionNode )
-        collisionNodePath.show()  # Show the collision node for debugging
+                    poly = CollisionPolygon(vertices[0], vertices[1], vertices[2])
+                    collision_node.addSolid(poly)
 
-        print( "Collision node created and attached to terrain" )  # Debugging
+                collision_node_path = child.attachNewNode(collision_node)
+                collision_node_path.show()  # Show the collision node for debugging
+
+                print(f"Collision node {child.getName()} created and attached to terrain")  # Debugging
+
 
     def on_map_click( self ):
         if self.mouseWatcherNode.hasMouse():
@@ -180,7 +194,8 @@ class MyApp(ShowBase):
                 point = entry.getSurfacePoint( self.render )
 
                 print( f"Collision detected at: {point}" )  # Debugging
-
+                picked_obj = entry.getIntoNodePath()
+                print( f"Clicked node ID or name: {picked_obj.getName()}" )
                 # Update the terrain center to the clicked point
                 self.terrain_center = point
                 self.update_camera_position()
