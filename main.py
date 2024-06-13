@@ -22,7 +22,7 @@ class MyApp(ShowBase):
         self.terrain = terrainInfo.terrain
         self.terrain.getRoot().reparentTo( self.render )
         self.terrain.setFocalPoint( self.camera )
-        #self.disableMouse()
+        self.disableMouse()
         self.create_rotate_left_button()
         self.create_rotate_right_button()
         self.create_above_button()
@@ -36,21 +36,22 @@ class MyApp(ShowBase):
         self.picker = CollisionTraverser()
         self.pickerQueue = CollisionHandlerQueue()
 
-        self.pickerNode = CollisionNode('mouseRay')
-        self.pickerNP = self.camera.attachNewNode(self.pickerNode)
-        self.pickerNode.setFromCollideMask(BitMask32.bit(1))
+        self.pickerNode = CollisionNode( 'mouseRay' )
+        self.pickerNP = self.camera.attachNewNode( self.pickerNode )
+        self.pickerNode.setFromCollideMask( BitMask32.bit( 1 ) )
         self.pickerRay = CollisionRay()
-        self.pickerNode.addSolid(self.pickerRay)
-        self.picker.addCollider(self.pickerNP, self.pickerQueue)
+        self.pickerNode.addSolid( self.pickerRay )
+        self.picker.addCollider( self.pickerNP, self.pickerQueue )
+
         self.accept( 'mouse1', self.on_map_click )
+
+        # Create a collision mesh for the terrain
         self.create_terrain_collision()
-        # Position the camera directly above the center of the terrain
-        self.update_camera_position()
 
         # Position the camera directly above the center of the terrain
         self.update_camera_position()
         # Start a task to update the camera position
-        self.taskMgr.add(self.update_camera_task, "UpdateCameraTask")
+        self.taskMgr.add( self.update_camera_task, "UpdateCameraTask" )
 
     def setCamera( self ):
         self.camera_angle = 0  # Initial camera angle
@@ -127,7 +128,6 @@ class MyApp(ShowBase):
         geom = geomNode.getGeom( 0 )
         vertexData = geom.getVertexData()
 
-        format = geom.getVertexData().getFormat()
         vertexReader = GeomVertexReader( vertexData, 'vertex' )
 
         tris = geom.getPrimitive( 0 )
@@ -153,27 +153,39 @@ class MyApp(ShowBase):
             collisionNode.addSolid( poly )
 
         collisionNodePath = root.attachNewNode( collisionNode )
-    def on_map_click(self):
-        print('1111')
+        collisionNodePath.show()  # Show the collision node for debugging
+
+        print( "Collision node created and attached to terrain" )  # Debugging
+
+    def on_map_click( self ):
         if self.mouseWatcherNode.hasMouse():
-            print( '222' )
             mpos = self.mouseWatcherNode.getMouse()
 
             # Set the position of the ray based on the mouse position
-            self.pickerRay.setFromLens(self.camNode, mpos.getX(), mpos.getY())
+            self.pickerRay.setFromLens( self.camNode, mpos.getX(), mpos.getY() )
 
             # Perform the collision detection
-            self.picker.traverse(self.render)
+            self.picker.traverse( self.render )
 
-            if self.pickerQueue.getNumEntries() > 0:
+            print( f"Mouse position: {mpos}" )  # Debugging
+            print( f"Traversing collisions..." )  # Debugging
+
+            numEntries = self.pickerQueue.getNumEntries()
+            print( f"Number of collision entries: {numEntries}" )  # Debugging
+
+            if numEntries > 0:
                 # Sort entries so the closest is first
                 self.pickerQueue.sortEntries()
-                entry = self.pickerQueue.getEntry(0)
-                point = entry.getSurfacePoint(self.render)
+                entry = self.pickerQueue.getEntry( 0 )
+                point = entry.getSurfacePoint( self.render )
+
+                print( f"Collision detected at: {point}" )  # Debugging
 
                 # Update the terrain center to the clicked point
                 self.terrain_center = point
                 self.update_camera_position()
+            else:
+                print( "No collisions detected." )  # Debugging
 
 app = MyApp()
 app.run()
