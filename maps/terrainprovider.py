@@ -3,7 +3,7 @@ from panda3d.core import Filename, GeoMipTerrain, PNMImage, Point3
 
 
 class TerrainInfo:
-    def __init__(self, terrain, heightMap ):
+    def __init__( self, terrain, heightMap ):
         self.terrain = terrain
         self.heightMap = heightMap
         terrain_size = heightMap.getXSize()
