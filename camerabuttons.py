@@ -1,9 +1,11 @@
 from direct.gui.DirectButton import DirectButton
 
+from camera import TerrainCamera
+
 
 class CameraButtons:
-    def __init__( self, camera ):
-        self.camera = camera
+    def __init__( self, terrainCamera: TerrainCamera ):
+        self.camera = terrainCamera
         self.create_above_button()
         self.create_rotate_left_button()
         self.create_rotate_right_button()
