@@ -1,3 +1,5 @@
+from panda3d.core import AmbientLight, PointLight
+
 from camera import TerrainCamera
 from camerabuttons import CameraButtons
 from terraincolision import TerrainCollision
@@ -21,6 +23,18 @@ class MyApp(ShowBase):
         self.accept( 'mouse1', self.on_map_click )
         # Start a task to update the camera position
         self.taskMgr.add( self.terrainCamera.update_camera_task, "UpdateCameraTask" )
+
+        # Add a point light
+        plight = PointLight("plight")
+        plight_node = self.render.attachNewNode(plight)
+        plight_node.setPos(60, 60, 50)
+        self.render.setLight(plight_node)
+
+        # Add an ambient light
+        alight = AmbientLight("alight")
+        alight.setColor((0.5, 0.5, 0.5, 1))
+        alight_node = self.render.attachNewNode(alight)
+        self.render.setLight(alight_node)
 
     def on_map_click( self ):
         self.terrainCamera.on_map_click()
