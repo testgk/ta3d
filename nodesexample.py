@@ -1,7 +1,7 @@
-from panda3d.core import GeoMipTerrain, GeomNode, NodePath, BitMask32, LVector3
+from panda3d.core import GeoMipTerrain, GeomNode, GeomVertexReader, NodePath, BitMask32, LVector3
 from panda3d.core import GeomVertexFormat, GeomVertexData, GeomVertexWriter, GeomTriangles, Geom
 
-def getVertices(geom: GeomNode) -> list:
+def getVertices(geom: GeomNode ) -> list:
     all_vertices = []
     tris = geom.getPrimitive(0)  # Assuming the first primitive is triangles
     tris = tris.decompose()
@@ -55,16 +55,16 @@ def display_polygon(parent: NodePath, vertices, name="polygon"):
 
     return geom_node_path
 
-def createTerrainCollision(terrain: GeoMipTerrain):
+def createTerrainCollision( terrain: GeoMipTerrain ):
     root = terrain.getRoot()
 
     # Iterate over each GeomNode
     for child in root.getChildren():
         if isinstance(child.node(), GeomNode):
             geom_node = child.node()
-            all_triangles = getVertices(geom_node.getGeom(0))
+            all_triangles = getVertices( geom_node.getGeom(0) )
             for i, vertices in enumerate(all_triangles):
-                display_polygon(child, vertices, f"polygon_{child.getName()}_{i}")
+                display_polygon(child, vertices, f"polygon_{ child.getName()}_{ i }" )
 
 # Example usage
 terrain = GeoMipTerrain("terrain")

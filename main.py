@@ -13,6 +13,7 @@ class MyApp(ShowBase):
         terrainProvider = TerrainProvider( self.loader )
         self.terrainInfo = terrainProvider.create_terrain( "heightmap1" )
         self.terrain = self.terrainInfo.terrain
+
         self.terrain.getRoot().reparentTo( self.render )
         self.terrain.setFocalPoint( self.camera )
         self.disableMouse()
@@ -25,14 +26,14 @@ class MyApp(ShowBase):
         self.taskMgr.add( self.terrainCamera.update_camera_task, "UpdateCameraTask" )
 
         # Add a point light
-        plight = PointLight("plight")
+        plight = PointLight( "plight" )
         plight_node = self.render.attachNewNode(plight)
-        plight_node.setPos(60, 60, 50)
-        self.render.setLight(plight_node)
+        plight_node.setPos( 60, 60, 15 )
+        self.render.setLight( plight_node )
 
         # Add an ambient light
         alight = AmbientLight("alight")
-        alight.setColor((0.5, 0.5, 0.5, 1))
+        alight.setColor( ( 0.5, 0.5, 0.7, 1 ) )
         alight_node = self.render.attachNewNode(alight)
         self.render.setLight(alight_node)
 
