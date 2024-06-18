@@ -14,4 +14,5 @@ class TerrainCollision:
         for child in root.getChildren():
             if isinstance( child.node(), GeomNode ):
                 customCollisionPolygon = CustomCollisionPolygon( child )
-                customCollisionPolygon.attachToTerrainChildNode()
+                if customCollisionPolygon.getAngle < 0.2:
+                    customCollisionPolygon.attachToTerrainChildNode()
