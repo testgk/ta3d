@@ -33,6 +33,14 @@ def calculate_angle( normal_vector, reference_plane_normal = Vec3( 0, 0, 1 ) ):
     angle_degrees = math.degrees(angle_radians)
     return angle_degrees
 
+def triangle_area( v0, v1, v2 ):
+    # Use the cross product to get the area of the triangle
+    edge1 = v1 - v0
+    edge2 = v2 - v0
+    cross_product = edge1.cross(edge2)
+    area = 0.5 * cross_product.length()
+    return area
+
 
 class CustomCollisionPolygon:
     def __init__( self, child: NodePath ):
@@ -50,8 +58,12 @@ class CustomCollisionPolygon:
             edge1 = vertex[ 1 ] - vertex[ 0 ]
             edge2 = vertex[ 2 ] - vertex[ 0 ]
             normal = edge1.cross( edge2 ).normalized()
+            self.__name = self._child.getName()
             self.__angle = calculate_angle( normal )
-            print( f"{self._child.getName() } angle = {self.__angle}")
+            self.__area = triangle_area( vertex[ 0 ], vertex[ 1 ], vertex[ 2 ] )
+            self.__row = int( self.__name[ 3 ] )
+            self.__col = int( self.__name[ 5 ] )
+            print( f"{ self._child.getName() } angle = { self.__angle }, area = { self.__area }")
             self.__collision_node.addSolid( self.__poly )
 
     @property
@@ -72,6 +84,6 @@ class CustomCollisionPolygon:
 
     def attachToTerrainChildNode( self ):
         self.__collision_node_path = self._child.attachNewNode( self.__collision_node )
-        self.__collision_node_path.show()  # Show the collision node for debugging
+        #self.__collision_node_path.show()  # Show the collision node for debugging
         print( f"Collision node { self._child.getName() } created and attached to terrain" )  # Debugging
 
