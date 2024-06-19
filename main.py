@@ -15,8 +15,9 @@ class MyApp(ShowBase):
         self.terrain = self.terrainInfo.terrain
 
         self.terrain.getRoot().reparentTo( self.render )
-        self.terrain.setFocalPoint( self.camera )
+        #self.terrain.setFocalPoint( self.camera )
         self.disableMouse()
+        self.camera.lookAt( self.terrainInfo.terrainCenter )
         self.terrainCamera = TerrainCamera( self.camera, self.mouseWatcherNode, self.camNode, self.render, self.terrainInfo.terrainCenter )
         self.cameraButtons = CameraButtons( self.terrainCamera )
         self.terrainCollision = TerrainCollision( self.terrain )
