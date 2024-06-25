@@ -3,6 +3,7 @@ from panda3d.core import BitMask32, CollisionNode, CollisionPolygon, GeoMipTerra
 
 from customcollisionpolygon import CustomCollisionPolygon
 
+polygons = {}
 
 class TerrainCollision:
     def __init__( self, terrain: GeoMipTerrain ):
@@ -16,3 +17,9 @@ class TerrainCollision:
                 customCollisionPolygon = CustomCollisionPolygon( child )
                 if customCollisionPolygon.getAngle < 0.2:
                     customCollisionPolygon.attachToTerrainChildNode()
+                    polygons[ child.getName() ] = customCollisionPolygon
+
+    @staticmethod
+    def getPolygon( polygonId: str ) -> CustomCollisionPolygon:
+        return polygons[ polygonId ]
+

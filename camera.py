@@ -79,9 +79,9 @@ class TerrainCamera:
                 entry = self.__terrainPicker.pickerQueue.getEntry( 0 )
                 point = entry.getSurfacePoint( self.__render )
 
-                print( f"Collision detected at: {point}" )  # Debugging
+                print( f"Collision detected at: { point }" )  # Debugging
                 picked_obj = entry.getIntoNodePath()
-                print( f"Clicked node ID or name: {picked_obj.getName()}" )
+                print( f"Clicked node ID or name: { picked_obj.getName() }" )
                 # Update the terrain center to the clicked point
                 self.__terrainCenter = point
                 self.__cameraRadius = self.CLOSE_PROXIMITY
