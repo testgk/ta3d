@@ -10,7 +10,7 @@ def getVertices( geom: GeomNode ) -> list:
     vertex_data = geom.getVertexData()
     vertex_reader = GeomVertexReader(vertex_data, 'vertex')
 
-    for i in range(tris.getNumPrimitives()):
+    for i in range( tris.getNumPrimitives() ):
         primStart = tris.getPrimitiveStart(i)
         primEnd = tris.getPrimitiveEnd(i)
         assert primEnd - primStart == 3
@@ -24,6 +24,7 @@ def getVertices( geom: GeomNode ) -> list:
         all_vertices.append( vertices )
     return all_vertices
 
+polygons = []
 
 def calculate_angle( normal_vector, reference_plane_normal = Vec3( 0, 0, 1 ) ):
     # Calculate the angle between the normal vector and the reference plane normal
@@ -61,9 +62,10 @@ class CustomCollisionPolygon:
             self.__name = self._child.getName()
             self.__angle = calculate_angle( normal )
             self.__area = triangle_area( vertex[ 0 ], vertex[ 1 ], vertex[ 2 ] )
-            self.__row = int( self.__name[ 3 ] )
-            self.__col = int( self.__name[ 5 ] )
-            print( f"{ self._child.getName() } angle = { self.__angle }, area = { self.__area }")
+            pos = self.__name[ 3: ].split('x')
+            self.__row = int( pos[ 0 ])
+            self.__col = int( pos[ 1 ] )
+            print( f"{ self._child.getName() } angle = { self.__angle }, row = { self.__row }, column = { self.__col } area = { self.__area }")
             self.__collision_node.addSolid( self.__poly )
 
     @property
@@ -84,6 +86,5 @@ class CustomCollisionPolygon:
 
     def attachToTerrainChildNode( self ):
         self.__collision_node_path = self._child.attachNewNode( self.__collision_node )
-        #self.__collision_node_path.show()  # Show the collision node for debugging
-        print( f"Collision node { self._child.getName() } created and attached to terrain" )  # Debugging
-
+        self.__collision_node_path.show()  # Show the collision node for debugging
+        print( f"Collision node { self.__name } created and attached to terrain" )  # Debugging
