@@ -3,6 +3,7 @@ from direct.task import Task
 from panda3d.core import Point3
 
 from cameracontroller import CameraController
+from customcollisionpolygon import CustomCollisionPolygon
 from picker import Picker
 from maps.terrainprovider import TerrainInfo
 
@@ -81,7 +82,15 @@ class TerrainCamera:
 
                 print( f"Collision detected at: { point }" )  # Debugging
                 picked_obj = entry.getIntoNodePath()
-                print( f"Clicked node ID or name: { picked_obj.getName() }" )
+                print( f"Clicked node: { picked_obj }" )
+                # Retrieve the CustomCollisionPolygon instance from the CollisionNode
+                custom_collision_polygon = picked_obj.node().getPythonTag( 'custom_collision_polygon' )
+                if custom_collision_polygon:
+                    print( f"CustomCollisionPolygon instance: { custom_collision_polygon }" )
+                    # Access the parent class attributes or methods as needed
+                    print( f"Parent node: { custom_collision_polygon.name }" )
+                    print( f"Node neighbors: { custom_collision_polygon.getNeighbor }" )
+                # Update the terrain center to the clicked point
                 # Update the terrain center to the clicked point
                 self.__terrainCenter = point
                 self.__cameraRadius = self.CLOSE_PROXIMITY

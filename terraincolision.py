@@ -1,5 +1,4 @@
-from panda3d.core import BitMask32, CollisionNode, CollisionPolygon, GeoMipTerrain, GeomNode, GeomTriangles, \
-    GeomVertexReader
+from panda3d.core import GeoMipTerrain, GeomNode
 
 from customcollisionpolygon import CustomCollisionPolygon
 
@@ -18,8 +17,3 @@ class TerrainCollision:
                 if customCollisionPolygon.getAngle < 0.2:
                     customCollisionPolygon.attachToTerrainChildNode()
                     polygons[ child.getName() ] = customCollisionPolygon
-
-    @staticmethod
-    def getPolygon( polygonId: str ) -> CustomCollisionPolygon:
-        return polygons[ polygonId ]
-
