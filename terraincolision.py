@@ -15,3 +15,7 @@ class TerrainCollision:
             if isinstance( child.node(), GeomNode ):
                 customCollisionPolygon = CustomCollisionPolygon( child )
                 customCollisionPolygon.attachToTerrainChildNode()
+
+        CustomCollisionPolygon.acquireAllNeighbors()
+
+

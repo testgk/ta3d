@@ -1,10 +1,14 @@
 import math
+from typing import Any
 
 from panda3d.core import BitMask32, CollisionNode, CollisionPolygon, GeomVertexReader, NodePath, Vec3, \
     GeomVertexFormat, GeomVertexData, GeomVertexWriter, GeomTriangles, Geom, GeomNode, Vec4
 
-def getPolygonFromPool( row, column ) -> 'CustomCollisionPolygon':
-    return polygons[ f"gmm{ row }x{ column }" ]
+def getPolygonFromPool( row, column ) -> Any | None:
+    try:
+        return polygons[ f"gmm{ row }x{ column }" ]
+    except KeyError:
+        return None
 
 
 def getPolygonByName( name: str ) -> 'CustomCollisionPolygon':
@@ -12,6 +16,11 @@ def getPolygonByName( name: str ) -> 'CustomCollisionPolygon':
 
 def addPolygonToPool( name, polygon ):
     polygons[ name ] = polygon
+
+
+def acquireAllNeighbors():
+    for name, polygon in polygons.items():
+        polygon.getNeighbors()
 
 
 def getVertices( geom: GeomNode ) -> list:
@@ -120,12 +129,16 @@ class CustomCollisionPolygon:
         self.__left = getPolygonFromPool( self.__row, self.__col + 1 )
         self.__right = getPolygonFromPool( self.__row, self.__col - 1 )
 
+    def showNeighbors( self ):
+        self.__up.showDebugNode()
+        self.__down.showDebugNode()
+        self.__left.showDebugNode()
+        self.__right.showDebugNode()
+
     @property
     def getNeighbor( self ) -> 'CustomCollisionPolygon':
-        try:
-            return getPolygonFromPool( self.__row + 1, self.__col )
-        except:
-            print( 'no neighbor' )
+        return getPolygonFromPool( self.__row + 1, self.__col )
+
 
     def createNeighbors( self ):
         pass
@@ -149,7 +162,7 @@ class CustomCollisionPolygon:
         self.__collision_node_path.setRenderModeWireframe()
         self.__collision_node_path.setRenderModeThickness( 2 )
         self.__collision_node_path.setZ( self.__collision_node_path.getZ() + height_offset )
-        self.__collision_node_path.show()
+        self.__collision_node_path.hide()
         self.attachDebugNode()
 
     def attachDebugNode( self, height_offset = 0.02, color = Vec4( 0, 1, 0, 0.5 ) ):
@@ -186,9 +199,7 @@ class CustomCollisionPolygon:
         #debug_node_path.hide()
         print( f"Collision node {self.__name} created and attached to terrain" )  # Debugging
 
-
-
-
-
-
-
+    @classmethod
+    def acquireAllNeighbors( cls ):
+        for name, polygon in polygons.items():
+            polygon.getNeighbors()
