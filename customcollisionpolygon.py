@@ -3,14 +3,14 @@ import math
 from panda3d.core import BitMask32, CollisionNode, CollisionPolygon, GeomVertexReader, NodePath, Vec3, \
     GeomVertexFormat, GeomVertexData, GeomVertexWriter, GeomTriangles, Geom, GeomNode, Vec4
 
-def getPolygon( row, column ) -> 'CustomCollisionPolygon':
+def getPolygonFromPool( row, column ) -> 'CustomCollisionPolygon':
     return polygons[ f"gmm{ row }x{ column }" ]
 
 
 def getPolygonByName( name: str ) -> 'CustomCollisionPolygon':
     return polygons[ name ]
 
-def addPolygon( name, polygon ):
+def addPolygonToPool( name, polygon ):
     polygons[ name ] = polygon
 
 
@@ -61,13 +61,19 @@ def triangle_area( v0, v1, v2 ):
     area = 0.5 * cross_product.length()
     return area
 
-def getPosition( name ):
+def getNodePosition( name ):
     pos = name[ 3: ].split( 'x' )
     return int( pos[ 0 ] ), int( pos[ 1 ] )
 
 class CustomCollisionPolygon:
     def __init__( self, child: NodePath, *args, **kwargs ):
         super().__init__( *args, **kwargs )
+        self.__col = None
+        self.__row = None
+        self.__area = None
+        self.__name = None
+        self.__angle = None
+        self.__poly = None
         self.__debug_node_path = None
         self.__collision_node_path = None
         self.__collision_node = None
@@ -76,19 +82,21 @@ class CustomCollisionPolygon:
         self.__vertices = getVertices( self.__geom )
         self.__collision_node = CollisionNode( f'terrain_{ self.__child.getName() }' )
         self.__collision_node.setIntoCollideMask( BitMask32.bit( 1 ) )
+        self.constructCollitionNode( self.__vertices )
+
+    def constructCollitionNode( self, vertices ):
         triangleCount = 0
-        for vertex in self.__vertices:
+        for vertex in vertices:
             self.__poly = CollisionPolygon( vertex[ 0 ], vertex[ 1 ], vertex[ 2 ] )
             self.__angle = calculate_angle( vertex )
             self.__name = self.__child.getName()
             self.__area = triangle_area( vertex[ 0 ], vertex[ 1 ], vertex[ 2 ] )
-            self.__row, self.__col = getPosition( self.__name )
-            triangleCount += 1
-            print(
-                f"{ self.__name }: triangle: { triangleCount } { self.__angle }, row = { self.__row }, column = { self.__col } area = { self.__area }" )
+            self.__row, self.__col = getNodePosition( self.__name )
+            print( f"{self.__name}: triangle: {triangleCount} {self.__angle}, row = {self.__row}, column = {self.__col} area = {self.__area}" )
             self.__collision_node.addSolid( self.__poly )
             self.__collision_node.setPythonTag( 'custom_collision_polygon', self )
-            addPolygon( self.__name, self )
+            triangleCount += 1
+            addPolygonToPool( self.__name, self )
 
     @property
     def vertices( self ) -> list[ GeomVertexReader ]:
@@ -106,10 +114,16 @@ class CustomCollisionPolygon:
     def collisionNodePath( self ) -> NodePath:
         return self.__collision_node_path
 
+    def getNeighbors( self ):
+        self.__up = getPolygonFromPool( self.__row - 1, self.__col )
+        self.__down = getPolygonFromPool( self.__row + 1, self.__col )
+        self.__left = getPolygonFromPool( self.__row, self.__col + 1 )
+        self.__right = getPolygonFromPool( self.__row, self.__col - 1 )
+
     @property
     def getNeighbor( self ) -> 'CustomCollisionPolygon':
         try:
-            return getPolygon( self.__row + 1, self.__col )
+            return getPolygonFromPool( self.__row + 1, self.__col )
         except:
             print( 'no neighbor' )
 
@@ -123,23 +137,25 @@ class CustomCollisionPolygon:
     def __str__( self ):
         return f'{ self.__name }, row: { self.__row }, column: { self.__col }, area: { self.__area }, angle: { self.__angle }'
 
-    def attachToTerrainChildNode( self ):
+    def attachToTerrainChildNode( self, height_offset= 0.01 ):
         # Attach the collision node to the child node
         self.__collision_node_path = self.__child.attachNewNode( self.__collision_node )
         self.__collision_node_path.setRenderModeWireframe()
-        self.__collision_node_path.setRenderModeThickness( 3 )
-        self.__collision_node_path.show()  # Show the collision node for debugging
+        self.__collision_node_path.setRenderModeThickness( 2 )
+        self.__collision_node_path.setZ( self.__collision_node_path.getZ() + height_offset )
+        self.__collision_node_path.show()
+        self.attachDebugNode()
 
+    def attachDebugNode( self, height_offset = 0.02, color = Vec4( 0, 1, 0, 0.5 ) ):
+        if self.getAngle < 0.2:
+            return
         # Create a separate GeomNode for visualization
         debug_geom_node = GeomNode( 'debug_geom' )
-
         vertex_format = GeomVertexFormat.getV3()
         vertex_data = GeomVertexData( 'vertices', vertex_format, Geom.UHDynamic )
         vertex_writer = GeomVertexWriter( vertex_data, 'vertex' )
-
         geom = Geom( vertex_data )
         tris = GeomTriangles( Geom.UHDynamic )
-
         vertex_count = 0
         for i in range( self.__collision_node.getNumSolids() ):
             poly = self.__collision_node.getSolid( i )
@@ -153,15 +169,14 @@ class CustomCollisionPolygon:
 
         geom.addPrimitive( tris )
         debug_geom_node.addGeom( geom )
-
         # Create NodePath for debug geometry and attach to collision node path
         self.__debug_node_path = self.__child.attachNewNode( debug_geom_node )
-
+        self.__debug_node_path.setZ( self.__debug_node_path.getZ() + height_offset )
         # Set the color and render mode of the debug geometry
-        self.__debug_node_path.setColor( Vec4( 1, 0, 1, 0 ) )  # Set the color to red
+        self.__debug_node_path.setColor( color )  # Set the color to red
+        self.__debug_node_path.setTransparency( True )
 
         #debug_node_path.hide()
-
         print( f"Collision node {self.__name} created and attached to terrain" )  # Debugging
 
 

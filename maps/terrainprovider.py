@@ -25,6 +25,6 @@ class TerrainProvider:
         terrain.getRoot().setSz( 100 )
         # Calculate the center of the terrain
         terrain.generate()
-        #texture = self._loader.loadTexture( "maps/terrain_texture.png" )
-        #terrain.getRoot().setTexture( texture )
+        texture = self._loader.loadTexture( "maps/terrain_texture.png" )
+        terrain.getRoot().setTexture( texture )
         return TerrainInfo( terrain, heightmap )
