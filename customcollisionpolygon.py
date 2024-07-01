@@ -130,6 +130,12 @@ class CustomCollisionPolygon:
     def createNeighbors( self ):
         pass
 
+    def hideDebugNode( self ):
+        self.__debug_node_path.hide()
+
+    def showDebugNode( self ):
+        self.__debug_node_path.show()
+
     @property
     def getAngle( self ):
         return self.__angle
@@ -147,8 +153,8 @@ class CustomCollisionPolygon:
         self.attachDebugNode()
 
     def attachDebugNode( self, height_offset = 0.02, color = Vec4( 0, 1, 0, 0.5 ) ):
-        if self.getAngle < 0.2:
-            return
+        #if self.getAngle < 0.2:
+        #    return
         # Create a separate GeomNode for visualization
         debug_geom_node = GeomNode( 'debug_geom' )
         vertex_format = GeomVertexFormat.getV3()
@@ -175,6 +181,7 @@ class CustomCollisionPolygon:
         # Set the color and render mode of the debug geometry
         self.__debug_node_path.setColor( color )  # Set the color to red
         self.__debug_node_path.setTransparency( True )
+        self.__debug_node_path.hide()
 
         #debug_node_path.hide()
         print( f"Collision node {self.__name} created and attached to terrain" )  # Debugging

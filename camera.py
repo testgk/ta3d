@@ -90,6 +90,7 @@ class TerrainCamera:
                     # Access the parent class attributes or methods as needed
                     print( f"Parent node: { custom_collision_polygon.name }" )
                     print( f"Node neighbors: { custom_collision_polygon.getNeighbor }" )
+                    custom_collision_polygon.showDebugNode()
                 # Update the terrain center to the clicked point
                 # Update the terrain center to the clicked point
                 self.__terrainCenter = point
