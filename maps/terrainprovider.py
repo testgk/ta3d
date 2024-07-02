@@ -1,9 +1,8 @@
-from direct.showbase.ShowBase import ShowBase
 from panda3d.core import Filename, GeoMipTerrain, PNMImage, Point3
 
 
 class TerrainInfo:
-    def __init__(self, terrain, heightMap ):
+    def __init__( self, terrain: GeoMipTerrain, heightMap: PNMImage ):
         self.terrain = terrain
         self.heightMap = heightMap
         terrain_size = heightMap.getXSize()
